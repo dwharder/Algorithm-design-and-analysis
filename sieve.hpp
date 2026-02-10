@@ -45,7 +45,7 @@ std::vector<T> primes_up_to( T n ) {
   // We use std::vector<bool> for compact storage
   //  - bit-level representation is acceptable here
   //    since we only require indexed reads and writes.
-  std::vector<bool> is_prime( N + 1U, true );
+  std::vector<bool> is_prime( N + 1, true );
   is_prime[0] = false;
   is_prime[1] = false;
 
@@ -53,7 +53,7 @@ std::vector<T> primes_up_to( T n ) {
   //  - Computed first to allow exact allocation.
   std::size_t n_primes{ 0 };
 
-  std::size_t k{ 2U };
+  std::size_t k{ 2 };
 
   // Outer loop condition written as k <= N/k to avoid k*k overflow
   //  - Equivalent to k*k <= N for positive integers
