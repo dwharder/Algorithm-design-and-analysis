@@ -51,7 +51,7 @@ std::vector<T> primes_up_to( T n ) {
 
   // Total number of primes <= n
   //  - Computed first to allow exact allocation.
-  std::size_t n_primes{ 0 };
+  std::size_t prime_count{ 0 };
 
   std::size_t k{ 2 };
 
@@ -59,7 +59,7 @@ std::vector<T> primes_up_to( T n ) {
   //  - Equivalent to k*k <= N for positive integers
   for ( ; k <= N / k; ++k ) {
     if ( is_prime[k] ) {
-      ++n_primes;
+      ++prime_count;
 
       // Start at k*k: advance by repeated addition (m += k).
       for ( std::size_t m = k*k; m <= N; m += k ) {
@@ -71,7 +71,7 @@ std::vector<T> primes_up_to( T n ) {
   // Count primes greater than sqrt(n) that were not visited in the sieve loop
   for ( ; k <= N; ++k ) {
     if ( is_prime[k] ) {
-      ++n_primes;
+      ++prime_count;
     }
   }
 
@@ -82,13 +82,13 @@ std::vector<T> primes_up_to( T n ) {
       if ( is_prime[i] ) ++check;
     }
   
-    assert( check == n_primes );
+    assert( check == prime_count );
   #endif
 
   // Allocate result vector with exact size to avoid reallocation
-  std::vector<T> primes( n_primes );
+  std::vector<T> primes( prime_count );
 
-  for ( std::size_t m{ 0 }, k{ 2U }; m < n_primes; ++k ) {
+  for ( std::size_t m{ 0 }, k{ 2U }; m < prime_count; ++k ) {
     // Defensive check: logic guarantees termination before k exceeds N
     assert( k <= N );
 
