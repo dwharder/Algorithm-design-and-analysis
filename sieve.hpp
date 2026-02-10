@@ -7,6 +7,18 @@
 template <typename T>
 std::vector<T> primes_up_to( T n );
 
+/**
+ * @file   sieve.hpp
+ * @brief  Implements the Sieve of Eratosthenes algorithm.
+ *
+ * This header provides a templated function to compute all prime numbers up to a given limit using the Sieve of Eratosthenes.
+ * It requires the template type to be an unsigned integral type.
+ *
+ * @tparam T An unsigned integral type representing the upper limit of primes to find.
+ * @param  n The upper limit up to which primes are computed.
+ * @return A std::vector<T> containing all prime numbers up to n.
+ */
+
 template <typename T>
 std::vector<T> primes_up_to( T n ) {
   static_assert( std::is_integral_v<T>,
