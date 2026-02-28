@@ -5,6 +5,37 @@
 #include <limits>
 #include <random>
 #include <vector>
+#include <array>
+
+// In a partitioning algorithm (e.g., quicksort or quickselect),
+// the optimal pivot is the true median of the range, since this
+// produces two equal-sized partitions. However, computing the
+// median exactly requires an O(n) operation, which defeats the
+// purpose of fast divide-and-conquer schemes. In practice, one
+// instead approximates the median by sampling a small subset
+// of the range.
+//
+// This program compares four pivot-selection strategies:
+//
+//   1. A single randomly chosen element.
+//   2. The larger of two randomly chosen elements.
+//   3. The median of three randomly chosen elements.
+//   4. Tukey's ninther: the median of three medians, each formed
+//      from three randomly chosen elements (nine samples total).
+//
+// The performance of divide-and-conquer algorithms depends
+// primarily on the size of the larger partition. Although the
+// expected behavior of these strategies can be derived
+// analytically, this program performs a Monte Carlo simulation
+// to confirm that empirical results align with the theoretical
+// predictions.
+//
+// For each trial, a vector of N random values is generated and
+// partitioned using each strategy. To ensure a fair comparison,
+// all strategies draw from the same sampled indices whenever
+// their definitions overlap. This prevents any strategy from
+// benefiting merely from a fortunate random selection within
+// a given trial.
 
   ///////////////////////////
  // Function declarations //
@@ -64,10 +95,18 @@ int main() {
         std::vector<unsigned int> v3{ a };
         std::vector<unsigned int> v4{ a };
 
+        // So that each strategy uses the same indices, so that one
+        // strategy does not get an advantage over another by random chance.
+        //  - Weakness, we don't check for duplicates
+        std::array<std::size_t, 9> indices;
+      
+        for ( auto &idx : indices ) {
+            idx = index_dist( rng );
+        }
+
         // Strategy 1: pivot is one randomly chosen element
         {
-            std::size_t idx{ index_dist( rng ) };
-            unsigned int pivot{ v1[idx] };
+            unsigned int pivot{ v1[indices[0]] };
 
             std::size_t larger{ larger_side_after_partition( v1, pivot ) };
             sum_larger_one_pivot += static_cast<double>( larger );
@@ -75,10 +114,8 @@ int main() {
 
         // Strategy 2: pivot is the larger of two randomly chosen elements
         {
-            std::size_t i{ index_dist( rng ) };
-            std::size_t j{ index_dist( rng ) };
-            unsigned int p1{ v2[i] };
-            unsigned int p2{ v2[j] };
+            unsigned int p1{ v2[indices[0]] };
+            unsigned int p2{ v2[indices[1]] };
             unsigned int pivot{ (p1 < p2) ? p2 : p1 };  // max(p1,p2)
 
             std::size_t larger{ larger_side_after_partition( v2, pivot ) };
@@ -87,13 +124,9 @@ int main() {
 
         // Strategy 3: pivot is the median of three randomly chosen elements
         {
-            std::size_t i{ index_dist( rng ) };
-            std::size_t j{ index_dist( rng ) };
-            std::size_t k{ index_dist( rng ) };
-
-            unsigned int const &p1{ v3[i] };
-            unsigned int const &p2{ v3[j] };
-            unsigned int const &p3{ v3[k] };
+            unsigned int const &p1{ v3[indices[0]] };
+            unsigned int const &p2{ v3[indices[1]] };
+            unsigned int const &p3{ v3[indices[2]] };
 
             unsigned int pivot{ median_of_three( p1, p2, p3 ) };
             std::size_t larger{ larger_side_after_partition( v3, pivot ) };
@@ -104,17 +137,17 @@ int main() {
         // randomly chosen elements (Tukey's ninther)
         {
             // Pick 9 samples (with replacement, as in the model).
-            unsigned int const &a1{ v4[index_dist( rng )] };
-            unsigned int const &a2{ v4[index_dist( rng )] };
-            unsigned int const &a3{ v4[index_dist( rng )] };
+            unsigned int const &a1{ v4[indices[0]] };
+            unsigned int const &a2{ v4[indices[1]] };
+            unsigned int const &a3{ v4[indices[2]] };
 
-            unsigned int const &b1{ v4[index_dist( rng )] };
-            unsigned int const &b2{ v4[index_dist( rng )] };
-            unsigned int const &b3{ v4[index_dist( rng )] };
+            unsigned int const &b1{ v4[indices[3]] };
+            unsigned int const &b2{ v4[indices[4]] };
+            unsigned int const &b3{ v4[indices[5]] };
 
-            unsigned int const &c1{ v4[index_dist( rng )] };
-            unsigned int const &c2{ v4[index_dist( rng )] };
-            unsigned int const &c3{ v4[index_dist( rng )] };
+            unsigned int const &c1{ v4[indices[6]] };
+            unsigned int const &c2{ v4[indices[7]] };
+            unsigned int const &c3{ v4[indices[8]] };
 
             unsigned int m1{ median_of_three( a1, a2, a3 ) };
             unsigned int m2{ median_of_three( b1, b2, b3 ) };
