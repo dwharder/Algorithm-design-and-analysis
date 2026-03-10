@@ -186,6 +186,41 @@ void three_n_plus_one_and_divide_by_2( double_size_t &n );
  * requires a very large amount of memory when `N` is large. For example,
  * \(N = 35{,}700{,}000{,}000\) would be far beyond typical RAM capacity.
  */
+
+/**
+ * Sample output (running time of approximately 15 min with N = 35.7 billion):
+@verbatim
+      N = 35700000000
+      <snip />
+      11200681        688
+      14934241        691
+      15733191        704
+      31466382        705
+      36791535        744
+      63728127        949
+      127456254       950
+      169941673       953
+      226588897       956
+      268549803       964
+      537099606       965
+      670617279       986
+      1341234558      987
+      1412987847      1000
+      1674652263      1008
+      2610744987      1050
+      4578853915      1087
+      4890328815      1131
+      9780657630      1132
+      12212032815     1153
+      12235060455     1184
+      13371194527     1210
+      17828259369     1213
+      31694683323     1219
+      Maximum n:    0x164d6de9cfb4768b0
+       where 2^64 = 0x10000000000000000
+@endverbatim
+ */
+
 int main() {
     // std::size_t const N{ 2000000000 };
     std::size_t const N{ 35700000000 };
@@ -200,7 +235,7 @@ int main() {
      * of interest are far below 65535.
      */
     std::vector<unsigned short> v( N, 0 );
-    std::cout << "N == " << N << std::endl;
+    std::cout << "N = " << N << std::endl;
   
     v[0] = 0;
     v[1] = 0;
@@ -329,11 +364,11 @@ int main() {
 
     /// Print the largest intermediate value reached.
     if ( max_n.high == 0 ) {
-        std::cout << "Maximum n: 0x"
+        std::cout << "Maximum n:    0x"
                   << std::hex << max_n.low
                   << std::endl;
     } else {
-        std::cout << "Maximum n: 0x"
+        std::cout << "Maximum n:    0x"
                   << std::hex << max_n.high
                   << std::setw(16) << std::setfill('0') << max_n.low
                   << std::endl;
