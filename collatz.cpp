@@ -18,8 +18,8 @@
  * For a positive integer \(n\), the Collatz map is
  * \f[   C(n) =
  *   \begin{cases}
- *     n/2,   & \text{if } n \text{ is even}, \\
- *     3n+1,  & \text{if } n \text{ is odd}.
+ *     n/2,   & \text{if } n \text{ is even} \\
+ *     3n+1,  & \text{if } n \text{ is odd} \\
  *   \end{cases}   \f]
  *
  * The total stopping time \(T(n)\) is the number of iterations required
@@ -41,7 +41,7 @@
  * - when the trajectory of a new value reaches a cached value, the
  *   remaining stopping time is known immediately
  * - the program then retraces the trajectory from the starting value and
- *   backfills the cache for intermediate values below `N`
+ *   backfills the cache for intermediate values below `MEMOIZE`
  *
  * @section optimization_notes Optimizations
  *
@@ -188,9 +188,10 @@ void three_n_plus_one_and_divide_by_2( double_size_t &n );
  */
 
 /**
- * Sample output (running time of approximately 15 min with N = 35.7 billion):
+ * Sample output (running time of approximately 150 min with
+ * memoization used up to 2^35 = 32 billion.
 @verbatim
-      N = 35700000000
+      MEMOIZE = 34359738368
       <snip />
       11200681        688
       14934241        691
@@ -216,27 +217,36 @@ void three_n_plus_one_and_divide_by_2( double_size_t &n );
       13371194527     1210
       17828259369     1213
       31694683323     1219
+      Memoization ended...
+      63389366646     1220
+      75128138247     1228
+      133561134663    1234
+      158294678119    1242
+      166763117679    1255
+@endverbatim
+      In a previous run that stopped at 35,700,000,000,
+      we had that the maximum intermediate value was:
+@verbatim
       Maximum n:    0x164d6de9cfb4768b0
        where 2^64 = 0x10000000000000000
 @endverbatim
  */
 
 int main() {
-    // std::size_t const N{ 2000000000 };
-    std::size_t const N{ 35700000000 };
+    std::size_t const MEMOIZE{ std::size_t{ 1 } << 35 };
 
     /**
      * @brief Cache of stopping times.
      *
      * @details
-     * For values \(x < N\), `v[x]` stores \(T(x)\) once known.
+     * For values \(x < MEMOIZE\), `v[x]` stores \(T(x)\) once known.
      *
      * The type `unsigned short` is sufficient here because all stopping times
      * of interest are far below 65535.
      */
-    std::vector<unsigned short> v( N, 0 );
-    std::cout << "N = " << N << std::endl;
-  
+    std::vector<unsigned short> v( MEMOIZE, 0 );
+    std::cout << "MEMOIZE = " << MEMOIZE << std::endl;
+
     v[0] = 0;
     v[1] = 0;
     v[2] = 1;
@@ -265,11 +275,18 @@ int main() {
      */
     std::size_t curr_max{ 7 };
 
-    for ( std::size_t k{ 5 }; k < N; ++k ) {
+    for ( std::size_t k{ 5 }; true; ++k ) {
+        if ( k == MEMOIZE ) {
+            std::cout << "Memoization ended..." << std::endl;
+        }
+
         /// Skip values already backfilled during an earlier trajectory.
-        if ( v[k] != 0 ) {
+        if ( (k < MEMOIZE) && (v[k] != 0) ) {
             continue;
         }
+
+        // To be assigned
+        unsigned short curr_value;
 
         /**
          * @details
@@ -277,8 +294,9 @@ int main() {
          * \f[   T(k) = T(k/2) + 1,   \f]
          * and the value is obtained immediately from the cache.
          */
-        if ( (k & std::size_t{ 1 }) == 0 ) {
-            v[k] = v[k >> 1] + 1;
+        if ( (k < MEMOIZE) && (k & std::size_t{ 1 }) == 0 ) {
+            curr_value = v[k >> 1] + 1;
+            v[k] = curr_value;
         } else {
             double_size_t n{ 0, k };
 
@@ -290,7 +308,7 @@ int main() {
             /**
              * Walk forward until the current value is cacheable and already known.
              */
-            while ( (n.high != 0) || (n.low >= N) || (v[n.low] == 0) ) {
+            while ( (n.high != 0) || (n.low >= MEMOIZE) || (v[n.low] == 0) ) {
                 if ( (n.low & 1u) == 0 ) {
                     divide_n_by_two( n );
                     ++count;
@@ -313,52 +331,52 @@ int main() {
             }
 
             /**
-             * @brief Cached tail length.
-             *
-             * @details
-             * Once the trajectory reaches a cached value `n.low`,
-             * the remaining number of steps to 1 is `v[n.low]`.
-             */
-            unsigned short base{ v[n.low] };
-
-            /// Restart from the original starting value.
-            n.high = 0;
-            n.low  = k;
-
-            /**
              * @brief Stopping time of the current state during backfill.
              *
              * @details
-             * Initially this equals `count + base`, which is exactly \(T(k)\).
+             * Initially this equals `count + v[n]`, which is exactly \(T(k)\).
              * It decreases by one at each retraced step.
              */
-            unsigned short value{
-                static_cast<unsigned short>( count + base )
-            };
+            curr_value = static_cast<unsigned short>( count + v[n.low] );
 
-            /**
-             * Retrace the trajectory and fill in cache values for states below `N`.
-             */
-            for ( unsigned short remaining{ count };
-                  remaining != 0;
-                  --remaining, --value ) {
+            if ( k < MEMOIZE ) {
+                /**
+                 * @brief Cached tail length.
+                 *
+                 * @details
+                 * Once the trajectory reaches a cached value `n.low`,
+                 * the remaining number of steps to 1 is `v[n.low]`.
+                 */
 
-                if ( (n.high == 0) && (n.low < N) ) {
-                    v[n.low] = value;
-                }
+                /// Restart from the original starting value.
+                n.high = 0;
+                n.low  = k;
 
-                if ( (n.low & std::size_t{ 1 }) == 0 ) {
-                    divide_n_by_two( n );
-                } else {
-                    three_n_plus_one( n );
+                /**
+                 * Retrace the trajectory and fill in cache values
+                 * for states below 'MEMOIZE'.
+                 */
+                for ( unsigned short remaining{ count }, value{ curr_value };
+                      remaining != 0;
+                      --remaining, --value ) {
+
+                    if ( (n.high == 0) && (n.low < MEMOIZE) ) {
+                        v[n.low] = value;
+                    }
+
+                    if ( (n.low & std::size_t{ 1 }) == 0 ) {
+                        divide_n_by_two( n );
+                    } else {
+                        three_n_plus_one( n );
+                    }
                 }
             }
         }
 
         /// Print a new record holder.
-        if ( curr_max < v[k] ) {
-            std::cout << k << "\t" << v[k] << std::endl;
-            curr_max = v[k];
+        if ( curr_max < curr_value ) {
+            std::cout << k << "\t" << curr_value << std::endl;
+            curr_max = curr_value;
         }
     }
 
@@ -370,7 +388,7 @@ int main() {
     } else {
         std::cout << "Maximum n:    0x"
                   << std::hex << max_n.high
-                  << std::setw(16) << std::setfill('0') << max_n.low
+                  << std::setw( 16 ) << std::setfill( '0' ) << max_n.low
                   << std::endl;
     }
 
