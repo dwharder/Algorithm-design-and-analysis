@@ -99,6 +99,10 @@ int main() {
     Twos_complement( t1 );
     std::cout << t1 << std::endl << std::endl;
 
+    std::cout << "Trace the execution of a program:" << std::endl;
+    Twos_complement.trace( t1 );
+    std::cout << std::endl;
+
     std::cout << t2 << std::endl;
     Complement( t2 );
     std::cout << t2 << std::endl;
