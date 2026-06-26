@@ -21,7 +21,7 @@
 #include <sstream>
 #include <utility>
 #include <regex>
-
+#include <iomanip>
 
 // Class and struct declarations
 struct State;
@@ -1133,6 +1133,47 @@ public:
         return alphabet_;
     }
 
+    Run_result<state_type> trace(
+        tape_type &tape,
+        std::ostream &out = std::cout,
+        state_type start_state = INITIAL_STATE,
+        std::size_t max_steps = 100000
+    ) const {
+        if ( &tape.alphabet() != &alphabet_ ) {
+            throw std::invalid_argument{
+                "The tape and program do not use the same alphabet."
+            };
+        }
+
+        tape_type dry_run_tape{ tape };
+        run( dry_run_tape, start_state, max_steps );
+
+        auto first{ dry_run_tape.min_touched() };
+        auto last{ dry_run_tape.max_touched() };
+        auto width{ state_width() };
+
+        state_type state{ start_state };
+
+        for ( std::size_t k{ 0 }; k < max_steps; ++k ) {
+            out << std::setw( width )
+                << state_to_string( state )
+                << "  ";
+
+            print_trace_tape( out, tape, first, last );
+            out << '\n';
+
+            if ( is_terminal_state( state ) ) {
+                return Run_result<state_type>{ state };
+            }
+
+            state = execute_one_transition( tape, state, max_steps );
+        }
+
+        throw std::runtime_error{
+            "The program did not terminate within the maximum number of steps."
+        };
+    }
+
 private:
     alphabet_type const &alphabet_;
     std::unordered_map<Key, Transition, Key_hash> transitions_;
@@ -1672,6 +1713,55 @@ private:
     inline static std::regex const identifier_regex{
         R"([A-Za-z_][A-Za-z0-9_]*)"
     };
+
+    std::size_t state_width() const {
+        std::size_t width{ 1 };
+
+        for ( state_type s : terminal_states_ ) {
+            width = std::max( width, state_to_string( s ).size() );
+        }
+
+        for ( auto const &[key, transition] : transitions_ ) {
+            width = std::max( width, state_to_string( key.state ).size() );
+
+            if ( std::holds_alternative<Step_transition>( transition ) ) {
+                auto const &t{ std::get<Step_transition>( transition ) };
+                width = std::max( width, state_to_string( t.new_state ).size() );
+            }
+        }
+
+        return width;
+    }
+
+    void print_trace_tape(
+        std::ostream &out,
+        tape_type const &tape,
+        typename tape_type::position_type first,
+        typename tape_type::position_type last
+    ) const {
+        out << "~~ ";
+
+        for ( auto pos{ first }; pos <= last; ++pos ) {
+            auto code{ tape.read_code_at( pos ) };
+            std::string symbol{
+                code == tape_type::BLANK
+                    ? "_"
+                    : alphabet_.code_to_string( code )
+            };
+
+            if ( pos == tape.head() ) {
+                out << '[' << symbol << ']';
+            } else {
+                out << ' ' << symbol << ' ';
+            }
+
+            if ( pos != last ) {
+                out << ' ';
+            }
+        }
+
+        out << " ~~";
+    }
 };
 
 #endif
